@@ -1,5 +1,6 @@
+// solve any sudoku
+
 #include <stdio.h>
-#include <stdlib.h>
 
 int is_valid(int sudoku[9][9], int row, int column, int number)
 {
