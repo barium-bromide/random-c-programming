@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 #define ROWS 7
 #define COLS 7
@@ -14,6 +15,25 @@ struct Move
     int row, col;
 };
 
+void clear_input_buffer()
+{
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF)
+        ;
+}
+
+void printboard(char stringBoard[])
+{
+    for (int i = 0; i < 7; ++i)
+    {
+        for (int j = 0; j < 7; ++j)
+        {
+            printf("%c", stringBoard[7 * i + j]);
+        }
+        printf("\n");
+    }
+}
+
 short noMovesLeft(int board)
 {
     return (board == (1ULL << (GRID_SIZE)) - 1);
@@ -21,8 +41,6 @@ short noMovesLeft(int board)
 
 int evaluate(unsigned long long board, unsigned long long playerBoard)
 {
-    unsigned long long enemyBoard = board ^ playerBoard;
-
     // Define masks for rows, columns, and diagonals
     for (int row = 0; row < ROWS; ++row)
     {
@@ -34,8 +52,6 @@ int evaluate(unsigned long long board, unsigned long long playerBoard)
                 unsigned long long rowMask = 31 << (row * COLS + col);
                 if ((playerBoard & rowMask) == rowMask)
                     return 10;
-                if ((enemyBoard & rowMask) == rowMask)
-                    return -10;
             }
             // Column check
             if (row <= ROWS - WINNING_LENGTH)
@@ -44,8 +60,6 @@ int evaluate(unsigned long long board, unsigned long long playerBoard)
                 colMask |= (270549121ULL << (row * COLS + col));
                 if ((playerBoard & colMask) == colMask)
                     return 10;
-                if ((enemyBoard & colMask) == colMask)
-                    return -10;
             }
             // Diagonal check (bottom-right and bottom-left)
             if (row <= ROWS - WINNING_LENGTH && col <= COLS - WINNING_LENGTH)
@@ -56,62 +70,11 @@ int evaluate(unsigned long long board, unsigned long long playerBoard)
                 antiDiagMask |= (272696336ULL << (row * COLS + col));
                 if (((playerBoard & diagMask) == diagMask) || ((playerBoard & antiDiagMask) == antiDiagMask))
                     return 10;
-                if (((enemyBoard & diagMask) == diagMask) || ((enemyBoard & antiDiagMask) == antiDiagMask))
-                    return -10;
             }
         }
     }
 
     return 0;
-}
-
-// Minimax algorithm with alpha-beta pruning
-int minimax(unsigned long long board, unsigned long long playerBoard, int depth, short isMax, int alpha, int beta)
-{
-    int score = evaluate(board, playerBoard);
-    if (score == 10 || score == -10 || depth == 0 || noMovesLeft(board))
-        return score;
-
-    if (isMax)
-    {
-        int best = MIN;
-        for (short i = 0; i < GRID_SIZE; ++i)
-        {
-            if (!(board & (1ULL << i)))
-            {
-                board |= (1ULL << i);
-                playerBoard |= (1ULL << i);
-                int val = minimax(board, (board ^ playerBoard), depth - 1, 0, alpha, beta);
-                best = (best > val) ? best : val;
-                alpha = (alpha > best) ? alpha : best;
-                if (beta <= alpha)
-                    break;
-                board ^= (1ULL << i);
-                playerBoard ^= (1ULL << i);
-            }
-        }
-        return best;
-    }
-    else
-    {
-        int best = MAX;
-        for (short i = 0; i < GRID_SIZE; ++i)
-        {
-            if (!(board & (1ULL << i)))
-            {
-                board |= (1ULL << i);
-                playerBoard |= (1ULL << i);
-                int val = minimax(board, (board ^ playerBoard), depth - 1, 1, alpha, beta);
-                best = (best < val) ? best : val;
-                beta = (beta < best) ? beta : best;
-                if (beta <= alpha)
-                    break;
-                board ^= (1ULL << i);
-                playerBoard ^= (1ULL << i);
-            }
-        }
-        return best;
-    }
 }
 
 int negamax(unsigned long long board, unsigned long long playerBoard, int depth, int alpha, int beta)
@@ -121,20 +84,23 @@ int negamax(unsigned long long board, unsigned long long playerBoard, int depth,
         return score;
 
     int best = MIN;
+    playerBoard = board ^ playerBoard;
     for (short i = 0; i < GRID_SIZE; ++i)
     {
-        if (!(board & (1ULL << i)))
+        unsigned long long place = 1 << i;
+        if (!(board & place))
         {
-            board |= (1ULL << i);
-            playerBoard |= (1ULL << i);
             // Negate the result of the recursive call and swap the roles
-            int val = -negamax(board, (board ^ playerBoard), depth - 1, -beta, -alpha);
-            best = (best < val) ? best : val;
-            alpha = (alpha < best) ? alpha : best;
+            int val = 0;
+            val = -negamax((board | place), (playerBoard | place), depth - 1, -beta, -alpha);
+            if (depth == 2 && val == 0)
+                printf("Val %d , depth %d\n", val, depth);
+            if (depth == 1 && val != 0)
+                printf("Val %d , depth %d\n", val, depth);
+            best = (best > val) ? best : val;
+            alpha = (alpha > best) ? alpha : best;
             if (beta <= alpha)
                 break;
-            board ^= (1ULL << i);
-            playerBoard ^= (1ULL << i);
         }
     }
     return best;
@@ -153,8 +119,7 @@ struct Move findBestMove(unsigned long long board, unsigned long long playerBoar
             board |= (1ULL << i);
             playerBoard |= (1ULL << i);
 
-            int moveVal = negamax(board, playerBoard, 5, MIN, MAX);
-
+            int moveVal = negamax(board, playerBoard, 2, MIN, MAX);
             board ^= (1ULL << i);
             playerBoard ^= (1ULL << i);
 
@@ -172,13 +137,42 @@ struct Move findBestMove(unsigned long long board, unsigned long long playerBoar
 
 int main()
 {
-    unsigned long long board = 60;
-    unsigned long long playerBoard = 60;
+    char stringBoard[GRID_SIZE];
+    memset(stringBoard, '-', GRID_SIZE);
+
+    unsigned long long board = 120;
+    unsigned long long playerBoard = 0;
+
     double startTime = (float)clock() / CLOCKS_PER_SEC;
     struct Move bestmove = findBestMove(board, playerBoard);
     double endTime = (float)clock() / CLOCKS_PER_SEC;
     double timeElapsed = endTime - startTime;
     printf("Best move is (%d , %d)\n", bestmove.col, bestmove.row);
-    printf("%lf", timeElapsed);
+    printf("%lf\n", timeElapsed);
+    // struct Move you;
+    // while (!noMovesLeft(board))
+    // {
+    //     printf("X: ");
+    //     scanf("%d", &(you.col));
+    //     int c;
+    //     clear_input_buffer();
+    //     printf("Y:");
+    //     scanf("%d", &(you.row));
+    //     clear_input_buffer();
+    //     int position = you.row * COLS + you.col;
+    //     board |= (1ULL << position);
+    //     playerBoard |= (1ULL << position);
+    //     stringBoard[position] = 'X';
+
+    //     if (noMovesLeft(board))
+    //         break;
+
+    //     struct Move bestmove = findBestMove(board, (board ^ playerBoard));
+    //     int bestPosition = bestmove.row * COLS + bestmove.col;
+    //     board |= (1ULL << bestPosition);
+    //     stringBoard[bestPosition] = 'O';
+
+    //     printboard(stringBoard);
+    // }
     return 0;
 }
