@@ -1,11 +1,11 @@
 #include <stdio.h>
 
-char stringBoard[49] = "X------"
-                       "-X-----"
-                       "--XXXX-"
-                       "--XXX--"
-                       "--XX---"
-                       "--X----"
+char stringBoard[49] = "-------"
+                       "-------"
+                       "---X---"
+                       "---X---"
+                       "---X---"
+                       "---X---"
                        "-------";
 
 char spareStringBoard[49];
@@ -46,18 +46,25 @@ void decimalToStringBoard(unsigned long long board, unsigned long long playerBoa
 int main()
 {
     unsigned long long board, playerBoard;
-    board = 26392575123968;
-    playerBoard = 26392575123968;
-    decimalToStringBoard(board, playerBoard, spareStringBoard);
-    for (int i = 0; i < 49; ++i)
+    board = 527488539032575;
+    playerBoard = 527488539032575;
+    char decimalToString = 1;
+    if (decimalToString)
     {
-        printf("%c", spareStringBoard[i]);
-        if ((i + 1) % 7 == 0)
-            printf("\n");
+        decimalToStringBoard(board, playerBoard, spareStringBoard);
+        for (int i = 0; i < 49; ++i)
+        {
+            printf("%c", spareStringBoard[i]);
+            if ((i + 1) % 7 == 0)
+                printf("\n");
+        }
     }
+    else
+    {
 
-    // stringBoardToDecimal(stringBoard, &board, &playerBoard);
-    // printf("board: %llu\n", board);
-    // printf("playerBoard: %llu\n", playerBoard);
+        stringBoardToDecimal(stringBoard, &board, &playerBoard);
+        printf("board: %llu\n", board);
+        printf("playerBoard: %llu\n", playerBoard);
+    }
     return 0;
 }

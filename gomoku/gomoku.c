@@ -155,23 +155,32 @@ int evaluate_win(unsigned long long playerBoard)
 int negamax(unsigned long long board, unsigned long long playerBoard, int depth, int alpha, int beta)
 {
     int score = evaluate_win(playerBoard);
-
     if (score == 10 || depth == 0 || noMovesLeft(board))
-    {
         return -score;
-    }
 
     int best = MIN;
     playerBoard = board ^ playerBoard;
-    unsigned long long moves[GRID_SIZE];
-    possibleMoves(board, moves);
+    unsigned long long forceWinMask = winningMask(board, playerBoard);
+    unsigned long long playMask;
+    if (forceWinMask)
+    {
+        if (forceWinMask & (forceWinMask - 1))
+        {
+            return 10;
+        }
+        else
+            return 9;
+    }
+    else
+    {
+        playMask = possibleMask(board);
+    }
     for (short i = 0; i < GRID_SIZE; ++i)
     {
-        if (moves[i] != -1)
+        if ((1ULL << i) & playMask)
         {
-            // Negate the result of the recursive call and swap the roles
             int val = 0;
-            val = -(negamax((board | (1ULL << i)), (playerBoard | (1ULL << i)), depth - 1, -beta, -alpha));
+            val = -negamax((board | (1ULL << i)), (playerBoard | (1ULL << i)), depth - 1, -beta, -alpha);
             best = (best > val) ? best : val;
             alpha = (alpha > best) ? alpha : best;
             if (beta <= alpha)
@@ -188,10 +197,18 @@ struct Move findBestMove(unsigned long long board, unsigned long long playerBoar
     struct Move bestmove = {-1, -1};
 
     for (short i = 0; i < GRID_SIZE; ++i)
+        if (!(board & (1ULL << i)))
+            if (evaluate_win((playerBoard | (1ULL << i))))
+            {
+                bestmove.row = i / COLS;
+                bestmove.col = i % COLS;
+                return bestmove;
+            }
+    for (short i = 0; i < GRID_SIZE; ++i)
     {
         if (!(board & (1ULL << i)))
         {
-            int moveVal = -negamax((board | (1ULL << i)), (playerBoard | (1ULL << i)), 3, MIN, MAX);
+            int moveVal = -negamax((board | (1ULL << i)), (playerBoard | (1ULL << i)), 6, MIN, MAX);
 
             if (moveVal > bestval)
             {
@@ -210,40 +227,53 @@ int main()
     char stringBoard[GRID_SIZE];
     memset(stringBoard, '-', GRID_SIZE);
 
-    unsigned long long board = 138521149440;
-    unsigned long long playerBoard = 138521149440;
+    char nofight = 0;
 
-    double startTime = (float)clock() / CLOCKS_PER_SEC;
-    struct Move bestmove = findBestMove(board, playerBoard);
-    double endTime = (float)clock() / CLOCKS_PER_SEC;
-    double timeElapsed = endTime - startTime;
-    printf("Best move is (%d , %d)\n", bestmove.col, bestmove.row);
-    printf("%lf\n", timeElapsed);
-    // struct Move you;
-    // while (!noMovesLeft(board))
-    // {
-    //     printf("X: ");
-    //     scanf("%d", &(you.col));
-    //     int c;
-    //     clear_input_buffer();
-    //     printf("Y:");
-    //     scanf("%d", &(you.row));
-    //     clear_input_buffer();
-    //     int position = you.row * COLS + you.col;
-    //     board |= (1ULL << position);
-    //     playerBoard |= (1ULL << position);
-    //     stringBoard[position] = 'X';
-    //     printf("%llu %llu", board, playerBoard);
+    if (nofight)
+    {
+        unsigned long long board = 2164391936;
+        unsigned long long playerBoard = 0;
+        double startTime = (float)clock() / CLOCKS_PER_SEC;
+        struct Move bestmove = findBestMove(board, playerBoard);
+        double endTime = (float)clock() / CLOCKS_PER_SEC;
+        double timeElapsed = endTime - startTime;
+        printf("Best move is (%d , %d)\n", bestmove.col, bestmove.row);
+        printf("%lf\n", timeElapsed);
+    }
+    else
+    {
+        unsigned long long board = 0;
+        unsigned long long playerBoard = 0;
+        struct Move you;
+        while (!noMovesLeft(board))
+        {
+            printf("X: ");
+            scanf("%d", &(you.col));
+            int c;
+            clear_input_buffer();
+            printf("Y:");
+            scanf("%d", &(you.row));
+            clear_input_buffer();
+            int position = you.row * COLS + you.col;
+            board |= (1ULL << position);
+            playerBoard |= (1ULL << position);
+            stringBoard[position] = 'X';
+            printf("%llu %llu", board, playerBoard);
 
-    //     if (noMovesLeft(board))
-    //         break;
+            if (noMovesLeft(board) || evaluate_win(playerBoard))
+                break;
 
-    //     struct Move bestmove = findBestMove(board, (board ^ playerBoard));
-    //     int bestPosition = bestmove.row * COLS + bestmove.col;
-    //     board |= (1ULL << bestPosition);
-    //     stringBoard[bestPosition] = 'O';
+            double startTime = (float)clock() / CLOCKS_PER_SEC;
+            struct Move bestmove = findBestMove(board, (board ^ playerBoard));
+            double endTime = (float)clock() / CLOCKS_PER_SEC;
+            double timeElapsed = endTime - startTime;
+            printf("%lf\n", timeElapsed);
+            int bestPosition = bestmove.row * COLS + bestmove.col;
+            board |= (1ULL << bestPosition);
+            stringBoard[bestPosition] = 'O';
 
-    //     printboard(stringBoard);
-    // }
+            printboard(stringBoard);
+        }
+    }
     return 0;
 }
