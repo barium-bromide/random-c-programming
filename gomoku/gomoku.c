@@ -34,55 +34,84 @@ void printboard(char stringBoard[])
     }
 }
 
-short noMovesLeft(int board)
+short noMovesLeft(unsigned long long board)
 {
-    return (board == (1ULL << (GRID_SIZE)) - 1);
+    return (board == ((1ULL << GRID_SIZE) - 1));
+}
+
+unsigned long long possibleMask(unsigned long long board)
+{
+    return (((1ULL << GRID_SIZE) - 1ULL) ^ board);
+}
+
+unsigned long long winningMask(unsigned long long board, unsigned long long playerBoard)
+{
+    unsigned long long playMask = possibleMask(board);
+    unsigned long long winningMask = 0;
+    for (int row = 0; row < ROWS; ++row)
+    {
+        for (int col = 0; col < COLS; ++col)
+        {
+            if (col <= (COLS - WINNING_LENGTH + 1))
+            {
+                unsigned long long rowMask = 15ULL << (row * COLS + col);
+                if ((playerBoard & rowMask) == rowMask)
+                {
+                    if (col != 0)
+                        winningMask |= (playMask & (1ULL << (row * COLS + col - 1)));
+                    if (col != (COLS - WINNING_LENGTH + 1))
+                        winningMask |= (playMask & (1ULL << (row * COLS + col + 4)));
+                }
+            }
+            if (row <= (ROWS - WINNING_LENGTH + 1))
+            {
+                unsigned long long colMask = 0;
+                colMask |= (2113665ULL << (row * COLS + col));
+                if ((playerBoard & colMask) == colMask)
+                {
+                    if (row != 0)
+                    {
+                        winningMask |= (playMask & (1ULL << ((row - 1) * COLS + col)));
+                    }
+                    if (row != (ROWS - WINNING_LENGTH + 1))
+                        winningMask |= (playMask & (1ULL << ((row + 4) * COLS + col)));
+                }
+            }
+            if (row <= (ROWS - WINNING_LENGTH + 1) && col <= (COLS - WINNING_LENGTH + 1))
+            {
+                unsigned long long diagMask = 0;
+                unsigned long long antiDiagMask = 0;
+                diagMask |= (16843009ULL << (row * COLS + col));
+                antiDiagMask |= (2130440ULL << (row * COLS + col));
+                if (((playerBoard & diagMask) == diagMask))
+                {
+                    if (row != 0 && col != 0)
+                        winningMask |= (playMask & (1ULL << ((row - 1) * COLS + col - 1)));
+                    if (row != (ROWS - WINNING_LENGTH + 1) && col != (COLS - WINNING_LENGTH + 1))
+                        winningMask |= (playMask & (1ULL << ((row + 4) * COLS + col + 4)));
+                }
+                if (((playerBoard & antiDiagMask) == antiDiagMask))
+                {
+                    if (row != 0 && col != (COLS - WINNING_LENGTH + 1))
+                        winningMask |= (playMask & (1ULL << ((row - 1) * COLS + col + 4)));
+                    if (row != (ROWS - WINNING_LENGTH + 1) && col != 0)
+                        winningMask |= (playMask & (1ULL << ((row + 4) * COLS + col - 1)));
+                }
+            }
+        }
+    }
+    return winningMask;
 }
 
 void possibleMoves(unsigned long long board, unsigned long long *array)
 {
     for (int i = 0; i < GRID_SIZE; ++i)
     {
+        if (!(board & (1ULL << i)))
+            array[i] = i;
+        else
+            array[i] = -1;
     }
-}
-
-int anticipate_losing(unsigned long long board, unsigned long long playerBoard)
-{
-    for (int row = 0; row < ROWS; ++row)
-    {
-        for (int col = 0; col < COLS; ++col)
-        {
-            // Row check
-            if (col <= COLS - WINNING_LENGTH)
-            {
-                unsigned long long rowMask = 14ULL << (row * COLS + col);
-                unsigned long long rowMask2 = 17ULL << (row * COLS + col);
-                if (((playerBoard & rowMask) == rowMask) && ((board & rowMask2) == rowMask2))
-                    return 10;
-            }
-            // Column check
-            if (row <= ROWS - WINNING_LENGTH)
-            {
-                unsigned long long colMask = (2113664ULL << (row * COLS + col));
-                unsigned long long colMask2 = (268435457 << (row * COLS + col));
-                if (((playerBoard & colMask) == colMask) && ((board & colMask2) == colMask2))
-                    return 10;
-            }
-            // Diagonal check (bottom-right and bottom-left)
-            if (row <= ROWS - WINNING_LENGTH && col <= COLS - WINNING_LENGTH)
-            {
-                unsigned long long diagMask = 16843008ULL << (row * COLS + col);
-                unsigned long long antiDiagMask = 4260864ULL << (row * COLS + col);
-                unsigned long long diagMask2 = 4294967297 << (row * COLS + col);
-                unsigned long long antiDiagMask2 = 268435472 << (row * COLS + col);
-                if (((playerBoard & diagMask) == diagMask) && ((board & diagMask2) == diagMask2))
-                    return 10;
-                if (((playerBoard & antiDiagMask) == antiDiagMask) && ((board & antiDiagMask2) == antiDiagMask2))
-                    return 10;
-            }
-        }
-    }
-    return 0;
 }
 
 int evaluate_win(unsigned long long playerBoard)
@@ -93,14 +122,14 @@ int evaluate_win(unsigned long long playerBoard)
         for (int col = 0; col < COLS; ++col)
         {
             // Row check
-            if (col <= COLS - WINNING_LENGTH)
+            if (col <= (COLS - WINNING_LENGTH))
             {
                 unsigned long long rowMask = 31ULL << (row * COLS + col);
                 if ((playerBoard & rowMask) == rowMask)
                     return 10;
             }
             // Column check
-            if (row <= ROWS - WINNING_LENGTH)
+            if (row <= (ROWS - WINNING_LENGTH))
             {
                 unsigned long long colMask = 0;
                 colMask |= (270549121ULL << (row * COLS + col));
@@ -108,7 +137,7 @@ int evaluate_win(unsigned long long playerBoard)
                     return 10;
             }
             // Diagonal check (bottom-right and bottom-left)
-            if (row <= ROWS - WINNING_LENGTH && col <= COLS - WINNING_LENGTH)
+            if (row <= (ROWS - WINNING_LENGTH) && col <= (COLS - WINNING_LENGTH))
             {
                 unsigned long long diagMask = 0;
                 unsigned long long antiDiagMask = 0;
@@ -134,9 +163,11 @@ int negamax(unsigned long long board, unsigned long long playerBoard, int depth,
 
     int best = MIN;
     playerBoard = board ^ playerBoard;
+    unsigned long long moves[GRID_SIZE];
+    possibleMoves(board, moves);
     for (short i = 0; i < GRID_SIZE; ++i)
     {
-        if (!(board & (1ULL << i)))
+        if (moves[i] != -1)
         {
             // Negate the result of the recursive call and swap the roles
             int val = 0;
@@ -160,7 +191,7 @@ struct Move findBestMove(unsigned long long board, unsigned long long playerBoar
     {
         if (!(board & (1ULL << i)))
         {
-            int moveVal = -negamax((board | (1ULL << i)), (playerBoard | (1ULL << i)), 4, MIN, MAX);
+            int moveVal = -negamax((board | (1ULL << i)), (playerBoard | (1ULL << i)), 3, MIN, MAX);
 
             if (moveVal > bestval)
             {
@@ -179,8 +210,8 @@ int main()
     char stringBoard[GRID_SIZE];
     memset(stringBoard, '-', GRID_SIZE);
 
-    unsigned long long board = 1103823438083;
-    unsigned long long playerBoard = 259;
+    unsigned long long board = 138521149440;
+    unsigned long long playerBoard = 138521149440;
 
     double startTime = (float)clock() / CLOCKS_PER_SEC;
     struct Move bestmove = findBestMove(board, playerBoard);
