@@ -1,7 +1,18 @@
+#undef _GLIBCXX_DEBUG  // disable run-time bound checking, etc
+#pragma GCC optimize( \
+    "Ofast,inline")  // Ofast =
+                     // O3,fast-math,allow-store-data-races,no-protect-parens
+
+#pragma GCC target("bmi,bmi2,lzcnt,popcnt")  // bit manipulation
+#pragma GCC target("movbe")                  // byte swap
+#pragma GCC target("aes,pclmul,rdrnd")       // encryption
+#pragma GCC target("avx,avx2,f16c,fma,sse3,ssse3,sse4.1,sse4.2")  // SIMD
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <x86intrin.h>
 
 #define ROWS 7
 #define COLS 7
@@ -34,9 +45,10 @@ void printboard(char stringBoard[])
     }
 }
 
-short noMovesLeft(unsigned long long board)
+int noMovesLeft(unsigned long long board)
 {
-    return (board == ((1ULL << GRID_SIZE) - 1));
+    // return (board == ((1ULL << GRID_SIZE) - 1));
+    return __builtin_popcount(board) == GRID_SIZE;
 }
 
 unsigned long long possibleMask(unsigned long long board)
@@ -114,6 +126,44 @@ void possibleMoves(unsigned long long board, unsigned long long *array)
     }
 }
 
+// int evaluate_win(unsigned long long playerBoard)
+// {
+//     // Define masks for rows, columns, and diagonals
+//     for (int row = 0; row < ROWS; ++row)
+//     {
+//         for (int col = 0; col < COLS; ++col)
+//         {
+//             // Row check
+//             if (col <= (COLS - WINNING_LENGTH))
+//             {
+//                 unsigned long long rowMask = 31ULL << (row * COLS + col);
+//                 if ((playerBoard & rowMask) == rowMask)
+//                     return 10;
+//             }
+//             // Column check
+//             if (row <= (ROWS - WINNING_LENGTH))
+//             {
+//                 unsigned long long colMask = 0;
+//                 colMask |= (270549121ULL << (row * COLS + col));
+//                 if ((playerBoard & colMask) == colMask)
+//                     return 10;
+//             }
+//             // Diagonal check (bottom-right and bottom-left)
+//             if (row <= (ROWS - WINNING_LENGTH) && col <= (COLS - WINNING_LENGTH))
+//             {
+//                 unsigned long long diagMask = 0;
+//                 unsigned long long antiDiagMask = 0;
+//                 diagMask |= (4311810305ULL << (row * COLS + col));
+//                 antiDiagMask |= (272696336ULL << (row * COLS + col));
+//                 if (((playerBoard & diagMask) == diagMask) || ((playerBoard & antiDiagMask) == antiDiagMask))
+//                     return 10;
+//             }
+//         }
+//     }
+
+//     return 0;
+// }
+
 int evaluate_win(unsigned long long playerBoard)
 {
     // Define masks for rows, columns, and diagonals
@@ -121,29 +171,30 @@ int evaluate_win(unsigned long long playerBoard)
     {
         for (int col = 0; col < COLS; ++col)
         {
+            const unsigned int position_to_compare = (unsigned int)(playerBoard >> (row * COLS + col));
             // Row check
             if (col <= (COLS - WINNING_LENGTH))
             {
-                unsigned long long rowMask = 31ULL << (row * COLS + col);
-                if ((playerBoard & rowMask) == rowMask)
+                // unsigned int rowMask = 31;
+                if ((position_to_compare & 31U) == 31U)
+                // if (__builtin_popcount((position_to_compare & 31U)) == 5)
                     return 10;
             }
             // Column check
             if (row <= (ROWS - WINNING_LENGTH))
             {
-                unsigned long long colMask = 0;
-                colMask |= (270549121ULL << (row * COLS + col));
-                if ((playerBoard & colMask) == colMask)
+                // unsigned long long colMask = 270549121ULL;
+                if ((position_to_compare & 270549121U) == 270549121U)
+                // if (__builtin_popcount((position_to_compare & 270549121U)) == 5)
                     return 10;
             }
             // Diagonal check (bottom-right and bottom-left)
             if (row <= (ROWS - WINNING_LENGTH) && col <= (COLS - WINNING_LENGTH))
             {
-                unsigned long long diagMask = 0;
-                unsigned long long antiDiagMask = 0;
-                diagMask |= (4311810305ULL << (row * COLS + col));
-                antiDiagMask |= (272696336ULL << (row * COLS + col));
-                if (((playerBoard & diagMask) == diagMask) || ((playerBoard & antiDiagMask) == antiDiagMask))
+                // unsigned long long diagMask = 4311810305ULL;
+                // unsigned long long antiDiagMask = 272696336U;
+                if ((((unsigned long long)position_to_compare & 4311810305ULL) == 4311810305ULL) || ((position_to_compare & 272696336U) == 272696336U))
+                // if (__builtin_popcount((position_to_compare & 4311810305ULL)) == 5 || __builtin_popcount((position_to_compare & 272696336U)) == 5)
                     return 10;
             }
         }
@@ -160,27 +211,22 @@ int negamax(unsigned long long board, unsigned long long playerBoard, int depth,
 
     int best = MIN;
     playerBoard = board ^ playerBoard;
-    unsigned long long forceWinMask = winningMask(board, playerBoard);
+    // unsigned long long forceWinMask = winningMask(board, playerBoard);
+    unsigned long long forceWinMask = 0;
     unsigned long long playMask;
     if (forceWinMask)
     {
         if (forceWinMask & (forceWinMask - 1))
-        {
             return 10;
-        }
         else
             return 9;
     }
-    else
+    playMask = possibleMask(board);
+    for (int i = 0; i < GRID_SIZE; ++i)
     {
-        playMask = possibleMask(board);
-    }
-    for (short i = 0; i < GRID_SIZE; ++i)
-    {
-        if ((1ULL << i) & playMask)
+        if (1ULL & playMask >> i)
         {
-            int val = 0;
-            val = -negamax((board | (1ULL << i)), (playerBoard | (1ULL << i)), depth - 1, -beta, -alpha);
+            int val = -negamax((board | (1ULL << i)), (playerBoard | (1ULL << i)), depth - 1, -beta, -alpha);
             best = (best > val) ? best : val;
             alpha = (alpha > best) ? alpha : best;
             if (beta <= alpha)
@@ -196,7 +242,7 @@ struct Move findBestMove(unsigned long long board, unsigned long long playerBoar
     int bestval = MIN;
     struct Move bestmove = {-1, -1};
 
-    for (short i = 0; i < GRID_SIZE; ++i)
+    for (int i = 0; i < GRID_SIZE; ++i)
         if (!(board & (1ULL << i)))
             if (evaluate_win((playerBoard | (1ULL << i))))
             {
@@ -204,9 +250,9 @@ struct Move findBestMove(unsigned long long board, unsigned long long playerBoar
                 bestmove.col = i % COLS;
                 return bestmove;
             }
-    for (short i = 0; i < GRID_SIZE; ++i)
+    for (int i = 0; i < GRID_SIZE; ++i)
     {
-        if (!(board & (1ULL << i)))
+        if (!(board >> i & 1ULL))
         {
             int moveVal = -negamax((board | (1ULL << i)), (playerBoard | (1ULL << i)), 6, MIN, MAX);
 
@@ -227,11 +273,11 @@ int main()
     char stringBoard[GRID_SIZE];
     memset(stringBoard, '-', GRID_SIZE);
 
-    char nofight = 0;
+    char nofight = 1;
 
     if (nofight)
     {
-        unsigned long long board = 2164391936;
+        unsigned long long board = 0;
         unsigned long long playerBoard = 0;
         double startTime = (float)clock() / CLOCKS_PER_SEC;
         struct Move bestmove = findBestMove(board, playerBoard);
