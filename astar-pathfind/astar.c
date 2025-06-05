@@ -6,20 +6,20 @@
 #include <time.h>
 #include "minheap.h"
 
-#define GRID_HEIGHT 5
-#define GRID_WIDTH 5
+#define GRID_HEIGHT 10000
+#define GRID_WIDTH 10000
 #define GRID_SIZE GRID_HEIGHT * GRID_WIDTH
 /**
   * @about manhattan heuristic
   * @return distance to ending position
 */
-int32_t heuristic(int32_t pos, int32_t end_pos) {
+static int32_t heuristic(int32_t pos, int32_t end_pos) {
   int32_t dx = (end_pos % GRID_WIDTH) - (pos % GRID_WIDTH);
   int32_t dy = (end_pos - pos) / GRID_HEIGHT;
-  return abs(dx)+ abs(dy);
+  return abs(dx) + abs(dy);
 }
 
-bool contain(min_heap* open, int32_t node) {
+static bool contain(min_heap* open, int32_t node) {
   for (int i = 0; i < open->count; i++) {
     if (open->arr[i] == node) {
       return true;
@@ -28,7 +28,7 @@ bool contain(min_heap* open, int32_t node) {
   return false;
 }
 
-int32_t* reconstruct_path(int32_t* came_from, int32_t curr) {
+static int32_t* reconstruct_path(int32_t* came_from, int32_t curr) {
   int32_t* path = malloc(GRID_SIZE * sizeof(int32_t));
   path[0] = curr;
   path[GRID_SIZE - 1] = 1;
@@ -40,19 +40,15 @@ int32_t* reconstruct_path(int32_t* came_from, int32_t curr) {
   return path;
 }
 
-void get_neighbour(int32_t* neighbour, int32_t curr_grid_pos, bool* closed, bool* map) {
-    if (curr_grid_pos - GRID_WIDTH < 0 || map[curr_grid_pos - GRID_WIDTH] || closed[curr_grid_pos - GRID_WIDTH]) {
-      neighbour[0] = -1;
-    }
-    if (curr_grid_pos % GRID_WIDTH == 0 || map[curr_grid_pos - 1] || closed[curr_grid_pos - 1]) {
-      neighbour[1] = -1;
-    }
-    if ((curr_grid_pos + 1) % GRID_WIDTH == 0 || map[curr_grid_pos + 1] || closed[curr_grid_pos + 1]) {
-      neighbour[2] = -1;
-    }
-    if (curr_grid_pos + GRID_WIDTH > GRID_SIZE - 1 || map[curr_grid_pos + GRID_WIDTH] || closed[curr_grid_pos + GRID_WIDTH]) {
-      neighbour[3] = -1;
-    }
+static void get_neighbour(int32_t* neighbour, int32_t curr_grid_pos, bool* closed, bool* map) {
+  int32_t up = curr_grid_pos - GRID_WIDTH;
+  int32_t down = curr_grid_pos + GRID_WIDTH;
+  int32_t left = curr_grid_pos - 1;
+  int32_t right = curr_grid_pos + 1;
+  neighbour[0] = (up < 0 || map[up] || closed[up]) ? -1 : up;
+  neighbour[1] = (curr_grid_pos % GRID_WIDTH == 0 || map[left] || closed[left]) ? -1 : left;
+  neighbour[2] = ((curr_grid_pos + 1) % GRID_WIDTH == 0 || map[right] || closed[right]) ? -1 : right;
+  neighbour[3] = (down >= GRID_SIZE || map[down] || closed[down]) ? -1 : down;
 }
 
 int32_t* astar(int32_t start_pos, int32_t end_pos, bool* map) {
@@ -64,15 +60,13 @@ int32_t* astar(int32_t start_pos, int32_t end_pos, bool* map) {
   came_from[start_pos] = start_pos;
   int32_t* g_score = malloc(GRID_SIZE * sizeof(int32_t));
   assert(g_score != NULL);
-  for (int32_t i = 0; i < GRID_SIZE; i++) {
-    g_score[i] = GRID_SIZE;
-  }
-  g_score[start_pos] = 0;
   int32_t* f_score = malloc(GRID_SIZE * sizeof(int32_t));
   assert(f_score != NULL);
   for (int32_t i = 0; i < GRID_SIZE; i++) {
     f_score[i] = GRID_SIZE;
+    g_score[i] = GRID_SIZE;
   }
+  g_score[start_pos] = 0;
   f_score[start_pos] = heuristic(start_pos, end_pos);
   insert(open, start_pos, f_score);
 
@@ -86,7 +80,7 @@ int32_t* astar(int32_t start_pos, int32_t end_pos, bool* map) {
       free(f_score);
       return reconstruct_path(came_from, curr);
     }
-    int32_t neighbour[4] = {curr - GRID_WIDTH, curr - 1, curr + 1, curr + GRID_WIDTH};
+    int32_t neighbour[4];
     get_neighbour(neighbour, curr, closed, map);
     for (int i = 0; i < 4; i++) {
       if (neighbour[i] == -1) {
@@ -122,14 +116,6 @@ int32_t main(int32_t arg_c, char** arg_v) {
   double startTime = (float)clock() / CLOCKS_PER_SEC;
   path = astar(start, end, map);
   endTime = (float)clock() / CLOCKS_PER_SEC;
-  if (path != NULL) {
-    for (int32_t i = 0; i < path[GRID_SIZE - 1]; i++) {
-      printf("%d,", path[i]);
-    }
-    printf("\n");
-  } else {
-    printf("no");
-  };
   printf("%f\n", endTime - startTime);
   return 0;
 }

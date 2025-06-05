@@ -2,7 +2,6 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 min_heap* create_heap(int32_t capacity) {
@@ -21,15 +20,15 @@ void destroy_heap(min_heap* heap) {
   free(heap);
 }
 
-int32_t get_left_child_idx(int32_t parent_idx) {
+static inline int32_t get_left_child_idx(int32_t parent_idx) {
   return 2 * parent_idx + 1;
 }
 
-int32_t get_right_child_idx(int32_t parent_idx) {
+static inline int32_t get_right_child_idx(int32_t parent_idx) {
   return 2 * parent_idx + 2;
 }
 
-int32_t get_parent_idx(int32_t idx) {
+static inline int32_t get_parent_idx(int32_t idx) {
   return (int32_t) ((idx - 1) / 2);
 }
 
@@ -39,7 +38,7 @@ void insert(min_heap* heap, int32_t grid_idx, int32_t* f_score) {
   heap->count++;
 }
 
-void heapify_up(min_heap* heap, int32_t idx, int32_t* f_score) {
+static void heapify_up(min_heap* heap, int32_t idx, int32_t* f_score) {
   while (idx != 0 && f_score[heap->arr[get_parent_idx(idx)]] > f_score[heap->arr[idx]]) {
     int32_t temp = heap->arr[idx];
     heap->arr[idx] = heap->arr[get_parent_idx(idx)];
@@ -48,7 +47,7 @@ void heapify_up(min_heap* heap, int32_t idx, int32_t* f_score) {
   }
 }
 
-void heapify_down(min_heap* heap, int32_t idx, int32_t* f_score) {
+static void heapify_down(min_heap* heap, int32_t idx, int32_t* f_score) {
   int32_t smallest_idx = idx;
   while (true) {
     int32_t left_idx = get_left_child_idx(idx);
