@@ -5,10 +5,10 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define GRID_HEIGHT 10000
-#define GRID_WIDTH 10000
+#define GRID_HEIGHT 100
+#define GRID_WIDTH 100
 #define GRID_SIZE GRID_HEIGHT * GRID_WIDTH
-#define PATH_SIZE ((GRID_HEIGHT / 2) * (GRID_WIDTH + 1) + (GRID_HEIGHT & 1 ? GRID_WIDTH: GRID_WIDTH - (GRID_WIDTH / 2) - 1))
+#define MAX_PATH_SIZE ((GRID_HEIGHT / 2) * (GRID_WIDTH + 1) + (GRID_HEIGHT & 1 ? GRID_WIDTH: GRID_WIDTH - (GRID_WIDTH / 2) - 1))
 /**
  * @about manhattan heuristic
  * @return distance to ending position
@@ -29,7 +29,7 @@ static bool contain(min_heap *open, int32_t node) {
 }
 
 static int32_t *reconstruct_path(int32_t *came_from, int32_t curr) {
-  size_t num_of_elem = PATH_SIZE + 1;
+  size_t num_of_elem = MAX_PATH_SIZE + 1;
   int32_t *path = malloc(num_of_elem * sizeof(int32_t));
   path[0] = 2;
   path[1] = curr;
@@ -100,6 +100,7 @@ int32_t *astar(int32_t start_pos, int32_t end_pos, bool *map) {
   }
   destroy_heap(open);
   free(closed);
+  free(came_from);
   return NULL;
 }
 
