@@ -6,8 +6,8 @@
 #include <time.h>
 #include "minheap.h"
 
-#define GRID_HEIGHT 10000
-#define GRID_WIDTH 10000
+#define GRID_HEIGHT 5
+#define GRID_WIDTH 5
 #define GRID_SIZE GRID_HEIGHT * GRID_WIDTH
 /**
   * @about manhattan heuristic
@@ -26,7 +26,18 @@ bool contain(min_heap* open, int32_t node) {
     }
   }
   return false;
-  
+}
+
+int32_t* reconstruct_path(int32_t* came_from, int32_t curr) {
+  int32_t* path = malloc(GRID_SIZE * sizeof(int32_t));
+  path[0] = curr;
+  path[GRID_SIZE - 1] = 1;
+  while (came_from[curr] != curr) {
+    curr = came_from[curr];
+    path[path[GRID_SIZE - 1]++] = curr;
+  }
+  free(came_from);
+  return path;
 }
 
 void get_neighbour(int32_t* neighbour, int32_t curr_grid_pos, bool* closed, bool* map) {
@@ -44,10 +55,13 @@ void get_neighbour(int32_t* neighbour, int32_t curr_grid_pos, bool* closed, bool
     }
 }
 
-int32_t astar(int32_t start_pos, int32_t end_pos, bool* map) {
+int32_t* astar(int32_t start_pos, int32_t end_pos, bool* map) {
   min_heap* open = create_heap(GRID_SIZE);
   bool* closed = calloc(GRID_SIZE, sizeof(bool));
   assert(closed != NULL);
+  int32_t* came_from = malloc(GRID_SIZE * sizeof(int32_t));
+  assert(came_from != NULL);
+  came_from[start_pos] = start_pos;
   int32_t* g_score = malloc(GRID_SIZE * sizeof(int32_t));
   assert(g_score != NULL);
   for (int32_t i = 0; i < GRID_SIZE; i++) {
@@ -70,7 +84,7 @@ int32_t astar(int32_t start_pos, int32_t end_pos, bool* map) {
       free(closed);
       free(g_score);
       free(f_score);
-      return 1;
+      return reconstruct_path(came_from, curr);
     }
     int32_t neighbour[4] = {curr - GRID_WIDTH, curr - 1, curr + 1, curr + GRID_WIDTH};
     get_neighbour(neighbour, curr, closed, map);
@@ -82,6 +96,7 @@ int32_t astar(int32_t start_pos, int32_t end_pos, bool* map) {
       int32_t new_movement_cost_to_neighbour = g_score[curr] + 1;
       if (new_movement_cost_to_neighbour < g_score[neighbour[i]] || 
       !contain(open, neighbour[i])) {
+	came_from[neighbour[i]] = curr;
 	g_score[neighbour[i]] = new_movement_cost_to_neighbour;
 	f_score[neighbour[i]] = g_score[neighbour[i]] + heuristic(neighbour[i], end_pos);
 
@@ -95,20 +110,24 @@ int32_t astar(int32_t start_pos, int32_t end_pos, bool* map) {
   free(closed);
   free(g_score);
   free(f_score);
-  return 0;
+  return NULL;
 }
 
 int32_t main(int32_t arg_c, char** arg_v) {
   bool* map = calloc(GRID_SIZE, sizeof(bool));
   int32_t start = 0;
   int32_t end = GRID_SIZE - 1;
-  double startTime = (float)clock() / CLOCKS_PER_SEC;
+  int32_t* path;
   double endTime;
-  if (astar(start, end, map)) {
-    endTime = (float)clock() / CLOCKS_PER_SEC;
-    printf("yes\n");
+  double startTime = (float)clock() / CLOCKS_PER_SEC;
+  path = astar(start, end, map);
+  endTime = (float)clock() / CLOCKS_PER_SEC;
+  if (path != NULL) {
+    for (int32_t i = 0; i < path[GRID_SIZE - 1]; i++) {
+      printf("%d,", path[i]);
+    }
+    printf("\n");
   } else {
-    endTime = (float)clock() / CLOCKS_PER_SEC;
     printf("no");
   };
   printf("%f\n", endTime - startTime);
