@@ -4,10 +4,10 @@
 #include <stdlib.h>
 
 min_heap *create_heap(int32_t capacity) {
-  min_heap *h = (min_heap *)malloc(sizeof(min_heap));
+  min_heap *h;
+  h = malloc((sizeof *h) + sizeof(int32_t) * capacity);
   h->count = 0;
   h->capacity = capacity;
-  h->arr = (int32_t *)malloc(capacity * sizeof(int32_t));
   return h;
 }
 
@@ -15,7 +15,6 @@ void destroy_heap(min_heap *heap) {
   if (heap == NULL) {
     return;
   }
-  free(heap->arr);
   free(heap);
 }
 

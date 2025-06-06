@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define GRID_HEIGHT 100
-#define GRID_WIDTH 100
+#define GRID_HEIGHT 10000
+#define GRID_WIDTH 10000
 #define GRID_SIZE GRID_HEIGHT * GRID_WIDTH
 #define MAX_PATH_SIZE ((GRID_HEIGHT / 2) * (GRID_WIDTH + 1) + (GRID_HEIGHT & 1 ? GRID_WIDTH: GRID_WIDTH - (GRID_WIDTH / 2) - 1))
 /**
@@ -89,8 +89,7 @@ int32_t *astar(int32_t start_pos, int32_t end_pos, bool *map) {
       if (new_movement_cost_to_neighbour < g_score[neighbour[i]] || !contain(open, neighbour[i])) {
         came_from[neighbour[i]] = curr;
         g_score[neighbour[i]] = new_movement_cost_to_neighbour;
-        f_score[neighbour[i]] =
-            g_score[neighbour[i]] + heuristic(neighbour[i], end_pos);
+        f_score[neighbour[i]] = g_score[neighbour[i]] + heuristic(neighbour[i], end_pos);
 
         if (!contain(open, neighbour[i])) {
           insert(open, neighbour[i], f_score);
