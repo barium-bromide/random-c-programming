@@ -112,6 +112,7 @@ int32_t main(int32_t arg_c, char **arg_v) {
   double startTime = (float)clock() / CLOCKS_PER_SEC;
   path = astar(start, end, map);
   endTime = (float)clock() / CLOCKS_PER_SEC;
+  free(path);
   printf("%f\n", endTime - startTime);
   return 0;
 }

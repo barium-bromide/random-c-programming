@@ -30,12 +30,6 @@ static inline int32_t get_parent_idx(int32_t idx) {
   return (int32_t)((idx - 1) / 2);
 }
 
-void insert(min_heap *heap, int32_t grid_idx, int32_t *f_score) {
-  heap->arr[heap->count] = grid_idx;
-  heapify_up(heap, heap->count, f_score);
-  heap->count++;
-}
-
 static void heapify_up(min_heap *heap, int32_t idx, int32_t *f_score) {
   while (idx != 0 && f_score[heap->arr[get_parent_idx(idx)]] > f_score[heap->arr[idx]]) {
     int32_t temp = heap->arr[idx];
@@ -66,6 +60,12 @@ static void heapify_down(min_heap *heap, int32_t idx, int32_t *f_score) {
       break;
     }
   }
+}
+
+void insert(min_heap *heap, int32_t grid_idx, int32_t *f_score) {
+  heap->arr[heap->count] = grid_idx;
+  heapify_up(heap, heap->count, f_score);
+  heap->count++;
 }
 
 int32_t find_min(min_heap *heap, int32_t *f_score) {
