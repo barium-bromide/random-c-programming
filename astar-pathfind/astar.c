@@ -113,6 +113,7 @@ int32_t main(int32_t arg_c, char **arg_v) {
   path = astar(start, end, map);
   endTime = (float)clock() / CLOCKS_PER_SEC;
   free(path);
+  free(map);
   printf("%f\n", endTime - startTime);
   return 0;
 }
