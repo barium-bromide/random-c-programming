@@ -19,7 +19,7 @@ static int32_t heuristic(int32_t pos, int32_t end_pos) {
   return abs(dx) + abs(dy);
 }
 
-static bool contain(min_heap *open, int32_t node) {
+static bool contain(Min_heap *open, int32_t node) {
   for (int i = 0; i < open->count; i++) {
     if (open->arr[i] == node) {
       return true;
@@ -30,7 +30,7 @@ static bool contain(min_heap *open, int32_t node) {
 
 static int32_t *reconstruct_path(int32_t *came_from, int32_t curr) {
   size_t num_of_elem = MAX_PATH_SIZE + 1;
-  int32_t *path = malloc(num_of_elem * sizeof(int32_t));
+  int32_t *path = malloc(num_of_elem * sizeof(*path));
   path[0] = 2;
   path[1] = curr;
   while (came_from[curr] != curr) {
@@ -53,14 +53,13 @@ static void get_neighbour(int32_t *neighbour, int32_t curr_grid_pos, bool *close
 }
 
 int32_t *astar(int32_t start_pos, int32_t end_pos, bool *map) {
-  min_heap *open = create_heap(GRID_SIZE);
-  bool *closed = calloc(GRID_SIZE, sizeof(bool));
-  int32_t *came_from = malloc(3 * GRID_SIZE * sizeof(int32_t));
+  Min_heap *open = create_heap(GRID_SIZE);
+  bool *closed = calloc(GRID_SIZE, sizeof(*closed));
+  int32_t *came_from = malloc(3 * GRID_SIZE * sizeof(*came_from));
   int32_t *g_score = came_from + GRID_SIZE;
   int32_t *f_score = g_score + GRID_SIZE;
-  if (open == NULL || closed == NULL || came_from == NULL) {
+  if (open == NULL || closed == NULL || came_from == NULL)
     return NULL;
-  }
   came_from[start_pos] = start_pos;
   for (int32_t i = 0; i < GRID_SIZE; i++) {
     f_score[i] = GRID_SIZE;
@@ -81,9 +80,8 @@ int32_t *astar(int32_t start_pos, int32_t end_pos, bool *map) {
     int32_t neighbour[4];
     get_neighbour(neighbour, curr, closed, map);
     for (int i = 0; i < 4; i++) {
-      if (neighbour[i] == -1) {
+      if (neighbour[i] == -1)
         continue;
-      }
       // asumming all cost to neighbouring tiles is 1 more
       int32_t new_movement_cost_to_neighbour = g_score[curr] + 1;
       if (new_movement_cost_to_neighbour < g_score[neighbour[i]] || !contain(open, neighbour[i])) {
@@ -91,9 +89,8 @@ int32_t *astar(int32_t start_pos, int32_t end_pos, bool *map) {
         g_score[neighbour[i]] = new_movement_cost_to_neighbour;
         f_score[neighbour[i]] = g_score[neighbour[i]] + heuristic(neighbour[i], end_pos);
 
-        if (!contain(open, neighbour[i])) {
+        if (!contain(open, neighbour[i]))
           insert(open, neighbour[i], f_score);
-        }
       }
     }
   }
@@ -104,7 +101,7 @@ int32_t *astar(int32_t start_pos, int32_t end_pos, bool *map) {
 }
 
 int32_t main(int32_t arg_c, char **arg_v) {
-  bool *map = calloc(GRID_SIZE, sizeof(bool));
+  bool *map = calloc(GRID_SIZE, sizeof(*map));
   int32_t start = 0;
   int32_t end = GRID_SIZE - 1;
   int32_t *path;
